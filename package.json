@@ -1,16 +1,19 @@
 {
-    "name": "node-proxmox",
+    "name": "proxmox-node",
     "description": "A simple Proxmox VE NodeJs Module, asynchronous",
     "repository": {
 	    "type": "git",
-	    "url": "https://github.com/maloddon/node-proxmox.git"
+	    "url": "https://github.com/Privex/node-proxmox.git"
 	},
-    "version": "0.1.2",
+    "version": "0.1.3",
     "license": "GPLv2",
     "main": "node-proxmox.js",
     "keywords": [
 	    "proxmox",
 	    "api",
 	    "openvz"
-	]
+	],
+    "dependencies": {
+        "requests": "^0.1.0"
+    }
 }

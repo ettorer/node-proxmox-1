@@ -1,15 +1,25 @@
-No longer maintained. 
-============
 
 node-proxmox
 ============
 
 NodeJs Module to interract with Proxmox VE API. Full async.
 
+This project was previously abandoned by [@maloddon](https://github.com/maloddon). We've
+picked it up at Privex Inc. for use within our own projects.
+
+Our most recent changes included replacing the raw HTTP with the well known Node
+[request](https://github.com/request/request) library, which helped us resolve issues
+with certain Proxmox endpoints.
+
 Usage
 ============
+
 ```
-var px = require('node-proxmox')('hostname', 'username', 'authtype', 'password');
+npm install --save proxmox-node
+```
+
+```
+var px = require('proxmox-node')('hostname', 'username', 'authtype', 'password');
 
 px.get('/nodes/', callback(data));
 px.post('/nodes/{node}/storage/{storage}/content/{volume}', body, callback(data));
