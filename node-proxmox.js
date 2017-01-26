@@ -1,5 +1,6 @@
 var request = require('request'),
-	util = require('util');
+	util = require('util'),
+        querystring = require('querystring');
 
 module.exports = function ProxmoxApi(hostname, user, pve, password, port){
 	// INIT vars
@@ -83,7 +84,6 @@ module.exports = function ProxmoxApi(hostname, user, pve, password, port){
 				'Content-Type':'application/x-www-form-urlencoded',
 				'CSRFPreventionToken':this.token.CSRFPreventionToken,
 				'Referer': host,
-				'Content-Length': Buffer.byteLength(body),
 			};
 		}
 		var options = {
@@ -91,7 +91,11 @@ module.exports = function ProxmoxApi(hostname, user, pve, password, port){
 			gzip: true,
 			method: method,
 			headers: headers
-		};
+                };
+
+                if(method.toLowerCase() == 'put' || method.toLowerCase() == 'post') {
+                    options['body'] = querystring.stringify(body); 
+                }
 
 		request(options, (err, response, body) => {
 			if (!err && response.statusCode == 200) {
