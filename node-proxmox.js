@@ -2,20 +2,33 @@ var request = require('request'),
 	util = require('util'),
         querystring = require('querystring');
 
-module.exports = function ProxmoxApi(hostname, user, pve, password, port){
+module.exports = function ProxmoxApi(hostname, user, password, realm, port){
 	// INIT vars
-    this.hostname = hostname;
-    this.user = user;
-    this.password = pve;
-    this.pve = password;
-    this.token = {};
-    this.tokenTimestamp = 0;
-	this.port = (port === undefined ? 8006 : port);
+	this.token = {};
+	this.tokenTimestamp = 0;
+	this.hostname = hostname;
+	if(!realm && !password && !port) {//called with just hostname and may be port
+		this.port = (user === undefined ? 8006 : user);
+	} else { 
+		this.user = user;
+		this.password = password;
+		this.realm = realm;
+		this.port = (port === undefined ? 8006 : port);
+	}
 
-    function login(hostname, user, pve, password, callback)
+	function logout() //any other calls ater this will fail
+	{
+		this.token = {};
+		this.tokenTimestamp = 0;
+		this.user     = '';
+		this.password = '';
+		this.realm    = '';
+	}
+
+    function login(hostname, user, realm, password, callback)
 	{		
 		var querystring = require('querystring');
-		body = { password: password, username: user, realm: pve };
+		body = { password: password, username: user, realm: realm };
 		body = querystring.stringify(body);
 		var headers = {
 			'Content-Type':'application/x-www-form-urlencoded',
@@ -31,15 +44,20 @@ module.exports = function ProxmoxApi(hostname, user, pve, password, port){
 		};
 		var http = require('https');
 		var par = this;
-		var req = http.request(options, function(res){
+		var req = http.request(options, function(res) {
 			res.setEncoding('utf8');
 		    res.on('data', function (chunk) {
-		    	//Error handling to do
-		    	var data = JSON.parse(chunk).data;
-		        par.token = {ticket: data.ticket, CSRFPreventionToken: data.CSRFPreventionToken};
-		    	par.tokenTimestamp = new Date().getTime();	
-		    	if(typeof(callback) == 'function')
-		    		callback();
+				if (res.statusCode != 200) {	//Error handling
+					var err = new Error('http error ' + res.statusCode)
+					if (typeof (callback) == 'function')
+						callback(err);
+				} else {
+					var data = JSON.parse(chunk).data;
+					par.token = {ticket: data.ticket, CSRFPreventionToken: data.CSRFPreventionToken};
+					par.tokenTimestamp = new Date().getTime();	
+					if(typeof(callback) == 'function')
+						callback(null,data);
+				}
 		    });
 		});
 		req.write(body);
@@ -52,7 +70,7 @@ module.exports = function ProxmoxApi(hostname, user, pve, password, port){
 		//1 hour login timeout
 		if(currentTime - this.tokenTimestamp > 60 * 60 * 1000)
 		{
-			login(this.hostname, this.user, this.password, this.pve, function(){callApi(method, url, body, callback);});
+			login(this.hostname, this.user, this.password, this.realm, function(){callApi(method, url, body, callback);});
 		}
 		else
 		{
@@ -90,6 +108,7 @@ module.exports = function ProxmoxApi(hostname, user, pve, password, port){
 			url: host + '/api2/json' + url,
 			gzip: true,
 			method: method,
+			rejectUnauthorized: false, //Allow unauthorized SSL certificate
 			headers: headers
                 };
 
@@ -100,11 +119,24 @@ module.exports = function ProxmoxApi(hostname, user, pve, password, port){
 		request(options, (err, response, body) => {
 			if (!err && response.statusCode == 200) {
 				var info = JSON.parse(body);
-				return callback(info);
+				return callback(null,info);
+			} else {
+				if(err)
+					return callback(err);
+				else {
+					const error = new Error('http error ' + response.statusCode);
+					return callback(error);
+				}
 			}
 		});
+	}
 
-
+	function credlogin(user, password, realm, callback)
+	{
+		this.user = user;
+		this.password = password;
+		this.realm = realm;
+		login(this.hostname, user, password, realm, callback);
 	}
 
 return {
@@ -122,6 +154,12 @@ return {
 		},
 		getToken: function _getToken() {
 			return getToken();
+		},
+		login: function _login(user, password, realm, callback) {
+			credlogin(user, realm, password, callback);
+		},
+		logout: function _logout() {
+			logout();
 		}
 	}
 }
