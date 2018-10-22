@@ -61,6 +61,16 @@ module.exports = function ProxmoxApi(hostname, user, password, realm, port){
 		    });
 		});
 		req.write(body);
+		req.on('error', function (err) {
+			req.abort();
+			return callback(err);
+		});
+		req.on('timeout', function () {
+			req.abort();
+			const err = new ("Connection timeout");
+			return callback(err);
+		});
+		req.setTimeout(10000);
 		req.end();
 	}
 
@@ -70,7 +80,10 @@ module.exports = function ProxmoxApi(hostname, user, password, realm, port){
 		//1 hour login timeout
 		if(currentTime - this.tokenTimestamp > 60 * 60 * 1000)
 		{
-			login(this.hostname, this.user, this.password, this.realm, function(){callApi(method, url, body, callback);});
+			login(this.hostname, this.user, this.password, this.realm, function(err) {
+				if(err) return callback(err);
+				callApi(method, url, body, callback);
+			});
 		}
 		else
 		{
