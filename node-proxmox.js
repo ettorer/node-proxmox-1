@@ -163,7 +163,9 @@ module.exports = function ProxmoxApi(hostname, user, password, realm, port){
 	}
 
 return {
-		get: function get(url, callback){
+		callApi: function _callApi(url, callback) {
+			callApi('GET', url, '', callback);
+		}, get: function get(url, callback) {
 			call('GET', url, '', callback);
 		},
 		post: function post(url, body, callback){
@@ -183,6 +185,9 @@ return {
 		},
 		logout: function _logout() {
 			logout();
+		},
+		config: function _logout(hostname, port) {
+			config(hostname, port);
 		}
 	}
 }
