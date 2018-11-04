@@ -16,6 +16,12 @@ module.exports = function ProxmoxApi(hostname, user, password, realm, port){
 		this.port = (port === undefined ? 8006 : port);
 	}
 
+	function config(hostname, port)
+	{
+		this.hostname = hostname;
+		this.port = (port === undefined ? 8006 : port);
+	}
+	
 	function logout() //any other calls ater this will fail
 	{
 		this.token = {};
@@ -62,13 +68,17 @@ module.exports = function ProxmoxApi(hostname, user, password, realm, port){
 		});
 		req.write(body);
 		req.on('error', function (err) {
-			req.abort();
-			return callback(err);
+			if(!req.aborted) {
+				req.abort();
+				return callback(err);
+			}
 		});
 		req.on('timeout', function () {
-			req.abort();
-			const err = new ("Connection timeout");
-			return callback(err);
+			if (!req.aborted) {
+				req.abort();
+				const err = new Error("Connection timeout");
+				return callback(err);
+			}
 		});
 		req.setTimeout(10000);
 		req.end();
